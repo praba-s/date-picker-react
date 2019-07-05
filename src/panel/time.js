@@ -1,68 +1,31 @@
 import React, {Component} from 'react'
-import { formatTime, parseTime } from '@/utils/index'
+import { formatTime, parseTime } from '../utils/index'
+import PropTypes from "prop-types";
+import classNames from 'classnames';
 
-export class TimePanel extends Component {
+export class PanelTime extends Component {
   constructor(props){
     super(props)
-      this.state = {
-          timePickerOptions: {
-              type: [Object, Function],
-              default () {
-                  return null
-              }
-          },
-          timeSelectOptions: {
-              type: Object,
-              default () {
-                  return null
-              }
-          },
-          minuteStep: {
-              type: Number,
-              default: 0,
-              validator: val => val >= 0 && val <= 60
-          },
-          value: null,
-          timeType: {
-              type: Array,
-              default () {
-                  return ['24', 'a']
-              }
-          },
-          disabledTime: Function
-      }
   }
-  /*
-  computed: {
-    currentHours () {
-      return this.value ? new Date(this.value).getHours() : 0
-    },
-    currentMinutes () {
-      return this.value ? new Date(this.value).getMinutes() : 0
-    },
-    currentSeconds () {
-      return this.value ? new Date(this.value).getSeconds() : 0
-    }
-  },*/
 
   stringifyText (value) {
     return ('00' + value).slice(String(value).length)
   }
   selectTime (time) {
-    if (typeof this.disabledTime === 'function' && this.disabledTime(time)) {
+    if (typeof this.props.disabledTime === 'function' && this.props.disabledTime(time)) {
       return
     }
-    this.$emit('select', new Date(time))
+    this.props.select(new Date(time))
   }
   pickTime (time) {
-    if (typeof this.disabledTime === 'function' && this.disabledTime(time)) {
+    if (typeof this.props.disabledTime === 'function' && this.props.disabledTime(time)) {
       return
     }
-    this.$emit('pick', new Date(time))
+    this.props.pick(new Date(time))
   }
   getTimePickerOptions () {
     const result = []
-    const options = this.timePickerOptions
+    const options = this.props.timePickerOptions
     if (!options) {
       return []
     }
@@ -95,11 +58,14 @@ export class TimePanel extends Component {
   }
 
   render (h) {
-    const date = this.value
-      ? new Date(this.value)
-      : new Date().setHours(0, 0, 0, 0)
-    const disabledTime =
-      typeof this.disabledTime === 'function' && this.disabledTime
+      const { value, disabledTime, timeSelectOptions, minuteStep } = this.props
+      let currentHours = value ? new Date(value).getHours() : 0
+      let currentMinutes = value ? new Date(value).getMinutes() : 0
+      let currentSeconds = value ? new Date(value).getSeconds() : 0
+
+    const date = value ? new Date(value) : new Date().setHours(0, 0, 0, 0)
+
+    //const disabledTime = typeof disabledTime === 'function' && disabledTime
 
     let pickers = this.getTimePickerOptions()
     if (Array.isArray(pickers) && pickers.length) {
@@ -109,53 +75,51 @@ export class TimePanel extends Component {
         const time = new Date(date).setHours(pickHours, pickMinutes, 0)
         return (
           <li
-            class={{
+            className={classNames({
               'mx-time-picker-item': true,
-              cell: true,
-              actived:
-                pickHours === this.currentHours &&
-                pickMinutes === this.currentMinutes,
-              disabled: disabledTime && disabledTime(time)
-            }}
-            onClick={this.pickTime.bind(this, time)}
+              'cell': true,
+              'actived': pickHours === currentHours && pickMinutes === currentMinutes,
+                disabled: disabledTime && disabledTime(time)
+            })}
+            onClick={() => this.pickTime(time)}
           >
             {picker.label}
           </li>
         )
       })
       return (
-        <div class="mx-panel mx-panel-time">
-          <ul class="mx-time-list">{pickers}</ul>
+        <div className="mx-panel mx-panel-time">
+          <ul className="mx-time-list">{pickers}</ul>
         </div>
       )
     }
 
-    const minuteStep = this.minuteStep || 1
-    const minuteLength = parseInt(60 / minuteStep)
+    const minuteStepTemp = minuteStep || 1
+    const minuteLength = parseInt(60 / minuteStepTemp)
     let hours = Array.apply(null, { length: 24 }).map((_, i) => i)
     let minutes = Array.apply(null, { length: minuteLength }).map(
-      (_, i) => i * minuteStep
+      (_, i) => i * minuteStepTemp
     )
     let seconds =
-      this.minuteStep === 0
+      minuteStep === 0
         ? Array.apply(null, { length: 60 }).map((_, i) => i)
         : []
     let columns = { hours, minutes, seconds }
 
-    if (this.timeSelectOptions && typeof this.timeSelectOptions === 'object') {
-      columns = { ...columns, ...this.timeSelectOptions }
+    if (timeSelectOptions && typeof timeSelectOptions === 'object') {
+      columns = { ...columns, ...timeSelectOptions }
     }
 
     const hoursColumn = columns.hours.map(v => {
       const time = new Date(date).setHours(v)
       return (
         <li
-          class={{
+          className={classNames({
             cell: true,
-            actived: v === this.currentHours,
+            actived: v === currentHours,
             disabled: disabledTime && disabledTime(time)
-          }}
-          onClick={this.selectTime.bind(this, time)}
+          })}
+          onClick={() => this.selectTime(time)}
         >
           {this.stringifyText(v)}
         </li>
@@ -166,12 +130,12 @@ export class TimePanel extends Component {
       const time = new Date(date).setMinutes(v)
       return (
         <li
-          class={{
+          className={classNames({
             cell: true,
-            actived: v === this.currentMinutes,
+            actived: v === currentMinutes,
             disabled: disabledTime && disabledTime(time)
-          }}
-          onClick={this.selectTime.bind(this, time)}
+          })}
+          onClick={() => this.selectTime(time)}
         >
           {this.stringifyText(v)}
         </li>
@@ -182,12 +146,12 @@ export class TimePanel extends Component {
       const time = new Date(date).setSeconds(v)
       return (
         <li
-          class={{
+          className={classNames({
             cell: true,
-            actived: v === this.currentSeconds,
+            actived: v === currentSeconds,
             disabled: disabledTime && disabledTime(time)
-          }}
-          onClick={this.selectTime.bind(this, time)}
+          })}
+          onClick={() => this.selectTime(time)}
         >
           {this.stringifyText(v)}
         </li>
@@ -199,11 +163,37 @@ export class TimePanel extends Component {
     )
 
     times = times.map(list => (
-      <ul class="mx-time-list" style={{ width: 100 / times.length + '%' }}>
+      <ul className="mx-time-list" style={{ 'width': 100 / times.length + '%' }}>
         {list}
       </ul>
     ))
 
-    return <div class="mx-panel mx-panel-time">{times}</div>
+    return <div className="mx-panel mx-panel-time">{times}</div>
   }
+}
+
+
+PanelTime.propTypes = {
+    timePickerOptions: PropTypes.oneOfType([
+        PropTypes.object,
+        PropTypes.func
+    ]),
+    timeSelectOptions: PropTypes.object,
+    value: PropTypes.array,
+    minuteStep: function(props, propName, componentName){
+        let isValid = val => val >= 1 && val <= 60;
+        if(!isValid){
+            return new Error(
+                'Invalid prop `' + propName + '` supplied to' +
+                ' `' + componentName + '`. Validation failed.'
+            );
+        }
+    },
+    disabledTime: PropTypes.func,
+    select : PropTypes.func,
+    pick : PropTypes.func,
+}
+
+PanelTime.defaultProps = {
+    value : ['24', 'a'],
 }

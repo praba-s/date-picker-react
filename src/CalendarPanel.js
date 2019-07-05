@@ -1,105 +1,40 @@
 import React, {Component} from 'react'
-import { isValidDate, isDateObejct, formatDate } from '@/utils/index'
-import emitter from './mixins/emitter'
-import locale from './mixins/locale'
-import scrollIntoView from '@/utils/scroll-into-view'
-import PanelDate from './panel/DatePanel'
-import PanelYear from './panel/YearPanel'
-import PanelMonth from './panel/MonthPanel'
-import PanelTime from './panel/TimePanel'
-
+import { isValidDate, isDateObejct, formatDate } from './utils/index'
+import scrollIntoView from './utils/scroll-into-view'
+import { PanelDate } from './panel/date'
+import { PanelYear } from './panel/year'
+import { PanelMonth } from './panel/month'
+import { PanelTime } from './panel/time'
+import PropTypes from 'prop-types';
 
 export class CalendarPanel extends Component {
     constructor (props) {
         super(props)
         this.state = {
-            components: {PanelDate, PanelYear, PanelMonth, PanelTime},
-            mixins: [locale, emitter],
-            value: {
-                default: null,
-                validator: function (val) {
-                    return val === null || isValidDate(val)
-                }
-            },
-            startAt: null,
-            endAt: null,
-            visible: {
-                type: Boolean,
-                default: false
-            },
-            type: {
-                type: String,
-                default: 'date' // ['date', 'datetime'] zendy added 'month', 'year', mxie added "time"
-            },
-            dateFormat: {
-                type: String,
-                default: 'YYYY-MM-DD'
-            },
-            index: Number,
-            // below user set
-            defaultValue: {
-                validator: function (val) {
-                    return isValidDate(val)
-                }
-            },
-            firstDayOfWeek: {
-                default: 7,
-                type: Number,
-                validator: val => val >= 1 && val <= 7
-            },
-            notBefore: {
-                default: null,
-                validator: function (val) {
-                    return !val || isValidDate(val)
-                }
-            },
-            notAfter: {
-                default: null,
-                validator: function (val) {
-                    return !val || isValidDate(val)
-                }
-            },
-            disabledDays: {
-                type: [Array, Function],
-                default: function () {
-                    return []
-                }
-            },
-            minuteStep: {
-                type: Number,
-                default: 0,
-                validator: val => val >= 0 && val <= 60
-            },
-            timeSelectOptions: {
-                type: Object,
-                default() {
-                    return null
-                }
-            },
-            timePickerOptions: {
-                type: [Object, Function],
-                default() {
-                    return null
-                }
-            }
-        }
-    }
-
-
-    data() {
-        const now = this.getNow(this.value)
-        const calendarYear = now.getFullYear()
-        const calendarMonth = now.getMonth()
-        const firstYear = Math.floor(calendarYear / 10) * 10
-        return {
-            panel: 'NONE',
+            panel: 'DATE',
             dates: [],
-            calendarMonth,
-            calendarYear,
-            firstYear
+            now : this.getNow(this.props.value),
+            calendarYear: this.getNow(this.props.value).getFullYear(),
+            calendarMonth: this.getNow(this.props.value).getMonth() ,
+            firstYear: Math.floor(this.getNow(this.props.value).getFullYear() / 10) * 10,
+            months:['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
         }
     }
 
+    static defaultProps = {
+        valueType : 'date',
+        format: 'YYYY-MM-DD',
+        type: 'type',
+        confirmText: 'OK',
+        confirm: true,
+        inputName: 'date',
+        inputClass: 'mx-input',
+        popupStyle: '',
+        placeholder: "Please select Date",
+    }
+
+
+/*
     getNow() {
         return new Date(this.calendarYear, this.calendarMonth).getTime()
     }
@@ -108,7 +43,7 @@ export class CalendarPanel extends Component {
         const now = new Date(val)
         this.calendarYear = now.getFullYear()
         this.calendarMonth = now.getMonth()
-    }
+    }*/
 
     timeType() {
         const h = /h+/.test(this.$parent.format) ? '12' : '24'
@@ -117,10 +52,10 @@ export class CalendarPanel extends Component {
     }
 
     timeHeader() {
-        if (this.type === 'time') {
+        if (this.props.type === 'time') {
             return this.$parent.format
         }
-        return this.value && formatDate(this.value, this.dateFormat)
+        return this.props.value && formatDate(this.props.value, this.props.dateFormat)
     }
 
     yearHeader() {
@@ -128,7 +63,7 @@ export class CalendarPanel extends Component {
     }
 
     months() {
-        return this.t('months')
+        return this.state.months;
     }
 
     notBeforeTime() {
@@ -187,22 +122,31 @@ export class CalendarPanel extends Component {
     }
 
     getNow(value) {
-        return value
-            ? new Date(value)
-            : this.defaultValue && isValidDate(this.defaultValue)
-                ? new Date(this.defaultValue)
-                : new Date()
+        console.log("Value   " + value)
+        let val = value ? new Date(value): this.props.defaultValue && (isValidDate(this.props.defaultValue) ? new Date(this.props.defaultValue) : new Date())
+        return val;
     }
 
     updateNow(value) {
-        const oldNow = this.now
-        this.now = this.getNow(value)
-        if (this.visible && this.now !== oldNow) {
-            this.dispatch('DatePicker', 'calendar-change', [
+        const oldNow = this.state.now
+        this.setState({now: this.getNow(value)})
+        this.updateCalendar(value);
+        if (this.props.visible && this.state.now !== oldNow) {
+            /*this.dispatch('DatePicker', 'calendar-change', [
                 new Date(this.now),
                 new Date(oldNow)
-            ])
+            ])*/
+
+
         }
+    }
+
+    updateCalendar(now){
+        this.setState ({
+            calendarYear: this.getNow(now).getFullYear(),
+            calendarMonth :this.getNow(now).getMonth(),
+            firstYear : Math.floor(now.getFullYear() / 10) * 10,
+        })
     }
 
     getCriticalTime(value) {
@@ -260,8 +204,8 @@ export class CalendarPanel extends Component {
     }
 
     isDisabledMonth(month) {
-        const time = new Date(this.calendarYear, month).getTime()
-        const maxTime = new Date(this.calendarYear, month + 1).getTime() - 1
+        const time = new Date(this.state.calendarYear, month).getTime()
+        const maxTime = new Date(this.state.calendarYear, month + 1).getTime() - 1
         return (
             this.inBefore(maxTime) ||
             this.inAfter(time) ||
@@ -269,7 +213,8 @@ export class CalendarPanel extends Component {
         )
     }
 
-    isDisabledDate(date) {
+    isDisabledDate = (date) => {
+        console.log("Inside isDisabledDate")
         const time = new Date(date).getTime()
         const maxTime = new Date(date).setHours(23, 59, 59, 999)
         return (
@@ -289,6 +234,7 @@ export class CalendarPanel extends Component {
     }
 
     selectDate(date) {
+        console.log("Hello Inside Select Date " + date)
         if (this.type === 'datetime') {
             let time = new Date(date)
             if (isDateObejct(this.value)) {
@@ -317,7 +263,7 @@ export class CalendarPanel extends Component {
             this.showPanelTime()
             return
         }
-        this.$emit('select-date', date)
+        //this.$emit('select-date', date)
     }
 
     selectYear(year) {
@@ -339,19 +285,19 @@ export class CalendarPanel extends Component {
     }
 
     selectTime(time) {
-        this.$emit('select-time', time, false)
+        //this.$emit('select-time', time, false)
     }
 
     pickTime(time) {
-        this.$emit('select-time', time, true)
+        //this.$emit('select-time', time, true)
     }
 
     changeCalendarYear(year) {
-        this.updateNow(new Date(year, this.calendarMonth))
+        this.updateNow(new Date(year, this.state.calendarMonth))
     }
 
     changeCalendarMonth(month) {
-        this.updateNow(new Date(this.calendarYear, month))
+        this.updateNow(new Date(this.state.calendarYear, month))
     }
 
     getSibling() {
@@ -364,32 +310,32 @@ export class CalendarPanel extends Component {
     }
 
     handleIconMonth(flag) {
-        const month = this.calendarMonth
+        const month = this.state.calendarMonth
         this.changeCalendarMonth(month + flag)
-        this.$parent.$emit('change-calendar-month', {
+        /*this.$parent.$emit('change-calendar-month', {
             month,
             flag,
             vm: this,
             sibling: this.getSibling()
-        })
+        })*/
     }
 
-    handleIconYear(flag) {
-        if (this.panel === 'YEAR') {
+    handleIconYear (flag){
+        if (this.state.panel === 'YEAR') {
             this.changePanelYears(flag)
         } else {
-            const year = this.calendarYear
+            const year = this.state.calendarYear
             this.changeCalendarYear(year + flag)
-            this.$parent.$emit('change-calendar-year', {
+            /*this.$parent.$emit('change-calendar-year', {
                 year,
                 flag,
                 vm: this,
                 sibling: this.getSibling()
-            })
+            })*/
         }
     }
 
-    handleBtnYear() {
+    handleBtnYear = () => {
         this.showPanelYear()
     }
 
@@ -398,94 +344,129 @@ export class CalendarPanel extends Component {
     }
 
     handleTimeHeader() {
-        if (this.type === 'time') {
+        if (this.state.type === 'time') {
             return
         }
         this.showPanelDate()
     }
 
     changePanelYears(flag) {
-        this.firstYear = this.firstYear + flag * 10
+        this.setState({'firstYear':this.state.firstYear + flag * 10})
     }
 
     showPanelNone() {
-        this.panel = 'NONE'
+        this.setState({'panel':'NONE'})
     }
 
     showPanelTime() {
-        this.panel = 'TIME'
+        this.setState({'panel':'TIME'})
     }
 
     showPanelDate() {
-        this.panel = 'DATE'
+        this.setState({'panel':'DATE'})
     }
 
-    showPanelYear() {
-        this.panel = 'YEAR'
+    showPanelYear = () => {
+        this.setState({'panel':'YEAR'})
     }
 
     showPanelMonth() {
-        this.panel = 'MONTH'
+        this.setState({'panel':'MONTH'})
     }
 
     render() {
-        const {value, dateFormat} = this.props;
+        const {value, dateFormat, startAt, endAt, visible, type, index, defaultValue, firstDayOfWeek, notBefore, notAfter, disabledDays, minuteStep, timeSelectOptions, timePickerOptions} = this.props;
+        const { panel, firstYear, calendarMonth, calendarYear } = this.state;
+        let panelClass = 'mx-calendar-panel-' + panel.toLowerCase();
+
         return (
-
         <div>
-            <div className="mx-calendar" className="'mx-calendar-panel-' + panel.toLowerCase()">
+            <div className="mx-calendar" className={panelClass}>
                 <div className="mx-calendar-header">
-                    <a v-show="panel !== 'TIME'" className="mx-icon-last-year"
-                       onClick={this.handleIconYear(-1)}>&#171;</a>
-                    <a v-show="panel === 'DATE'" className="mx-icon-last-month"
-                       onClick={this.handleIconMonth(-1)}>&#8249;</a>
-                    <a v-show="panel !== 'TIME'" className="mx-icon-next-year"
-                       onClick={this.handleIconYear(1)}>&#187;</a>
-                    <a v-show="panel === 'DATE'" className="mx-icon-next-month"
-                       onClick={this.handleIconMonth(1)}>&#8250;</a>
-                    <a v-show="panel === 'DATE'" className="mx-current-month"
-                       onClick={this.handleBtnMonth}>{this.months[this.calendarMonth]}</a>
-                    <a v-show="panel === 'DATE' || panel === 'MONTH'" className="mx-current-year"
-                       onClick={this.handleBtnYear}>{this.calendarYear}</a>
-                    <a v-show="panel === 'YEAR'" className="mx-current-year">{this.yearHeader}</a>
-                    <a v-show="panel === 'TIME'" className="mx-time-header"
-                       onClick={this.handleTimeHeader}>{this.timeHeader}</a>
+                    {
+                        panel !== 'TIME' &&
+                        <a className="mx-icon-last-year"
+                           onClick={(flag) => this.handleIconYear(-1)}>&#171;</a>
+                    }
+                    {
+                        panel === 'DATE' &&
+                        <a className="mx-icon-last-month"
+                           onClick={this.handleIconMonth.bind(this,-1)}>&#8249;</a>
+                    }
+                    {
+                        panel !== 'TIME' &&
+                        <a className="mx-icon-next-year"
+                           onClick={(flag) => this.handleIconYear(1)}>&#187;</a>
+                    }
+
+                    {
+                        panel === 'DATE' &&
+                        <a className="mx-icon-next-month"
+                           onClick={(flag) => this.handleIconMonth(1)}>&#8250;</a>
+                    }
+                    {
+                        panel === 'DATE' &&
+                        <a className="mx-current-month"
+                           onClick={this.handleBtnMonth}>{this.state.months[calendarMonth]}</a>
+                    }
+
+                    {
+                        (panel === 'DATE' || panel === 'MONTH') &&
+                        <a className="mx-current-year"
+                           onClick={this.handleBtnYear}>&nbsp;{calendarYear}</a>
+                    }
+
+                    {
+                        panel === 'YEAR' &&
+                        <a className="mx-current-year"
+                           onClick={this.handleBtnYear}>{this.yearHeader}</a>
+                    }
+
+                    {
+                        panel === 'TIME' &&
+                        <a className="mx-time-header"
+                           onClick={this.handleTimeHeader}>{this.timeHeader}</a>
+                    }
+
                 </div>
+
                 <div className="mx-calendar-content">
-                    { (this.panel === 'DATE') &&
-                        <panel-date value={this.value}
-                                    date-format={this.dateFormat}
-                                    calendar-month={this.calendarMonth}
-                                    calendar-year={this.calendarYear}
-                                    start-at={this.startAt}
-                                    end-at={this.endAt}
-                                    first-day-of-week={this.firstDayOfWeek}
-                                    disabled-date={this.isDisabledDate}
-                                    select={this.selectDate}/>
+                    {
+                        (panel === 'DATE') &&
+                        <PanelDate value={value}
+                                    date-format={dateFormat}
+                                    calendarMonth={calendarMonth}
+                                    calendarYear={calendarYear}
+                                    startAt={startAt}
+                                    endAt={endAt}
+                                    firstDayOfWeek={firstDayOfWeek}
+                                    disabledDate={this.isDisabledDate}
+                                    select={this.selectDate}
+                                    />
                     }
 
-                    { (this.panel === 'YEAR') &&
-                        <panel-year
-                            value={this.value}
+                    { (panel === 'YEAR') &&
+                        <PanelYear
+                            value={value}
                             disabled-year={this.isDisabledYear}
-                            first-year={this.firstYear}
-                            select={this.selectYear}/>
+                            first-year={firstYear}
+                            select={() => this.selectYear}/>
                     }
 
-                    { (this.panel === 'MONTH') &&
-                        <panel-month
-                            value={this.value}
+                    { (panel === 'MONTH') &&
+                        <PanelMonth
+                            value={value}
                             disabled-month={this.isDisabledMonth}
-                            calendar-year={this.calendarYear}
+                            calendar-year={calendarYear}
                             select={this.selectMonth}/>
                     }
 
-                    { (this.panel === 'TIME') &&
-                        <panel-time
-                        minute-step={this.minuteStep}
-                        time-picker-options={this.timePickerOptions}
-                        time-select-options={this.timeSelectOptions}
-                        value={this.value}
+                    { (panel === 'TIME') &&
+                        <PanelTime
+                        minute-step={minuteStep}
+                        time-picker-options={timePickerOptions}
+                        time-select-options={timeSelectOptions}
+                        value={value}
                         disabled-time={this.isDisabledTime}
                         time-type={this.timeType}
                         select={this.selectTime}

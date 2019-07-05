@@ -1,4 +1,4 @@
-import Languages from '@/locale/languages'
+import Languages from '../locale/languages'
 
 const defaultLang = Languages.zh
 

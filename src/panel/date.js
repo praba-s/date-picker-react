@@ -1,70 +1,49 @@
 import React, { Component } from 'react'
-import locale from '@/mixins/locale'
-import { formatDate } from '@/utils/index'
+import { formatDate } from '../utils/index'
+import PropTypes from 'prop-types'
 
-export class DatePanel extends Component {
+export class PanelDate extends Component {
   constructor (props) {
       super(props)
       this.state = {
-          value: null,
-          startAt: null,
-          endAt: null,
-          dateFormat: {
-              type: String,
-              default: 'YYYY-MM-DD'
-          },
-          calendarMonth: {
-              default: new Date().getMonth()
-          },
-          calendarYear: {
-              default: new Date().getFullYear()
-          },
-          firstDayOfWeek: {
-              default: 7,
-              type: Number,
-              validator: val => val >= 1 && val <= 7
-          },
-          disabledDate: {
-              type: Function,
-              default: () => {
-                  return false
-              }
-          }
+          days: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
       }
   }
 
   selectDate ({ year, month, day }) {
+      console.log("year " + year)
       const date = new Date(year, month, day)
-      if (this.disabledDate(date)) {
+      if (this.props.disabledDate(date)) {
           return
       }
-      this.$emit('select', date)
+      this.props.select(date)
   }
 
   getDays (firstDayOfWeek) {
-    const days = this.t('days')
+    const days = this.state.days
     const firstday = parseInt(firstDayOfWeek, 10)
     return days.concat(days).slice(firstday, firstday + 7)
   }
 
   getDates (year, month, firstDayOfWeek) {
+      console.log("Hello")
     const arr = []
     const time = new Date(year, month)
 
-    time.setDate(0) // 把时间切换到上个月最后一天
-    const lastMonthLength = (time.getDay() + 7 - firstDayOfWeek) % 7 + 1 // time.getDay() 0是星期天, 1是星期一 ...
+    time.setDate(0)
+    const lastMonthLength = (time.getDay() + 7 - firstDayOfWeek) % 7 + 1
     const lastMonthfirst = time.getDate() - (lastMonthLength - 1)
     for (let i = 0; i < lastMonthLength; i++) {
       arr.push({ year, month: month - 1, day: lastMonthfirst + i })
     }
 
-    time.setMonth(time.getMonth() + 2, 0) // 切换到这个月最后一天
+    time.setMonth(time.getMonth() + 2, 0)
     const curMonthLength = time.getDate()
     for (let i = 0; i < curMonthLength; i++) {
       arr.push({ year, month, day: 1 + i })
     }
 
-    time.setMonth(time.getMonth() + 1, 1) // 切换到下个月第一天
+    time.setMonth(time.getMonth() + 1, 1)
     const nextMonthLength = 42 - (lastMonthLength + curMonthLength)
     for (let i = 0; i < nextMonthLength; i++) {
       arr.push({ year, month: month + 1, day: 1 + i })
@@ -73,16 +52,20 @@ export class DatePanel extends Component {
     return arr
   }
   getCellClasses ({ year, month, day }) {
+
+    const { value, startAt, endAt, disabledDate, calendarMonth  } = this.props;
+
     const classes = []
+    classes.push("cell")
     const cellTime = new Date(year, month, day).getTime()
     const today = new Date().setHours(0, 0, 0, 0)
-    const curTime = this.value && new Date(this.value).setHours(0, 0, 0, 0)
-    const startTime = this.startAt && new Date(this.startAt).setHours(0, 0, 0, 0)
-    const endTime = this.endAt && new Date(this.endAt).setHours(0, 0, 0, 0)
+    const curTime = value && new Date(value).setHours(0, 0, 0, 0)
+    const startTime = startAt && new Date(startAt).setHours(0, 0, 0, 0)
+    const endTime = endAt && new Date(endAt).setHours(0, 0, 0, 0)
 
-    if (month < this.calendarMonth) {
+    if (month < calendarMonth) {
       classes.push('last-month')
-    } else if (month > this.calendarMonth) {
+    } else if (month > calendarMonth) {
       classes.push('next-month')
     } else {
       classes.push('cur-month')
@@ -92,7 +75,7 @@ export class DatePanel extends Component {
       classes.push('today')
     }
 
-    if (this.disabledDate(cellTime)) {
+    if (disabledDate(cellTime)) {
       classes.push('disabled')
     }
 
@@ -105,32 +88,38 @@ export class DatePanel extends Component {
         classes.push('inrange')
       }
     }
+    console.log("classes  " + classes)
     return classes
   }
 
   getCellTitle ({ year, month, day }) {
-    return formatDate(new Date(year, month, day), this.dateFormat)
+    return formatDate(new Date(year, month, day), this.props.dateFormat)
   }
 
-  render (h) {
-    const ths = this.getDays(this.firstDayOfWeek).map(day => {
-      return <th>{day}</th>
-    })
+  render () {
+      const {firstDayOfWeek, calendarYear, calendarMonth } = this.props;
 
-    const dates = this.getDates(this.calendarYear, this.calendarMonth, this.firstDayOfWeek)
+      console.log("firstDayOfWeek "+firstDayOfWeek + "calendarYear " + calendarYear + " calendarMonth " +  calendarMonth +
+      "startAt "+ this.props.startAt + " endAt " + this.props.endAt )
+
+    const ths = this.getDays(firstDayOfWeek).map(day => {
+      return <th key={day}>{day}</th>
+    })
+    console.log("inside date  " + calendarYear + " calendarMonth " + calendarMonth)
+    let indexKey = 0;
+    const dates = this.getDates(calendarYear, calendarMonth, firstDayOfWeek)
     const tbody = Array.apply(null, { length: 6 }).map((week, i) => {
       const tds = dates.slice(7 * i, 7 * i + 7).map(date => {
-        const attrs = {
-          class: this.getCellClasses(date)
-        }
+        indexKey = indexKey + 1;
+        let className =  this.getCellClasses(date).join(' ')
         return (
           <td
-            className="cell"
-            {...attrs}
+            className = {className}
+            key={indexKey}
             data-year={date.year}
             data-month={date.month}
             title={this.getCellTitle(date)}
-            onClick={this.selectDate.bind(this, date)}>
+            onClick={() => this.selectDate(date)}>
             {date.day}
           </td>
         )
@@ -149,4 +138,33 @@ export class DatePanel extends Component {
       </table>
     )
   }
+}
+
+PanelDate.propTypes = {
+    value: PropTypes.any,
+    startAt: PropTypes.any,
+    endAt: PropTypes.any,
+    dateFormat: PropTypes.string,
+
+    calendarMonth: PropTypes.number,
+    calendarYear: PropTypes.number,
+    firstDayOfWeek: function(props, propName, componentName){
+        let isValid = val => val >= 1 && val <= 7;
+        if(!isValid){
+            return new Error(
+                'Invalid prop `' + propName + '` supplied to' +
+                ' `' + componentName + '`. Validation failed.'
+                );
+        }
+    },
+    disabledDate: PropTypes.func,
+    select : PropTypes.func
+}
+
+PanelDate.defaultProps = {
+    dateFormat : 'YYYY-MM-DD',
+    calendarMonth : new Date().getMonth(),
+    calendarYear : new Date().getFullYear(),
+    firstDayOfWeek: 7,
+    disabledDate :  () => {return false}
 }

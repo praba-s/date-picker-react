@@ -1,21 +1,17 @@
 import React, { Component } from 'react'
-import locale from '@/mixins/locale'
+import PropTypes from "prop-types";
+import classNames from 'classnames';
 
-export class MonthPanel extends Component {
+export class PanelMonth extends Component {
   constructor (props) {
       super(props)
       this.state = {
-
-          value: null,
-          calendarYear: {
-              default: new Date().getFullYear()
-          },
-          disabledMonth: Function
+          months : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
       }
   }
 
   isDisabled (month) {
-    if (typeof this.disabledMonth === 'function' && this.disabledMonth(month)) {
+    if (typeof this.props.disabledMonth === 'function' && this.props.disabledMonth(month)) {
       return true
     }
     return false
@@ -24,24 +20,38 @@ export class MonthPanel extends Component {
     if (this.isDisabled(month)) {
       return
     }
-    this.$emit('select', month)
+    //this.props.select(month) //TODO
   }
 
   render () {
-    let months = this.t('months')
-    const currentYear = this.value && new Date(this.value).getFullYear()
-    const currentMonth = this.value && new Date(this.value).getMonth()
+    let months = this.state.months
+    const currentYear = this.props.value && new Date(this.props.value).getFullYear()
+    const currentMonth = this.props.value && new Date(this.props.value).getMonth()
+
+
     months = months.map((v, i) => {
       return <span
-          className={{
-          'cell': true,
-          'actived': currentYear === this.calendarYear && currentMonth === i,
-          'disabled': this.isDisabled(i)
-        }}
-        onClick={this.selectMonth.bind(this, i)}>
+          className={classNames({
+              'cell': true,
+              'actived': currentYear === this.props.calendarYear && currentMonth === i,
+              'disabled': this.isDisabled(i)
+          })}
+        onClick={() => this.selectMonth(i)}>
         {v}
       </span>
     })
     return <div className="mx-panel mx-panel-month">{months}</div>
   }
+}
+
+
+PanelMonth.propTypes = {
+    value: PropTypes.any,
+    calendarYear: PropTypes.number,
+    disabledMonth : PropTypes.func
+}
+
+PanelMonth.defaultProps = {
+    value: null,
+    calendarYear: new Date().getFullYear(),
 }
